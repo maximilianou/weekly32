@@ -4,7 +4,7 @@ const supertest = require("supertest");
 const request = supertest(app);
 test('fetch authors', async (done) => {
   request
-    .post("graphql")
+    .post("/graphql")
     .send({
       query: '{authors { id, name} }',
     })
@@ -14,7 +14,7 @@ test('fetch authors', async (done) => {
     .end(function (err, res){
       if(err) return done(err);
       expect(res.body).toBeInstanceOf(Object);
-      expect(res.body.data.users.length).toEqual(3);
+      expect(res.body.data.authors.length).toEqual(3);
       done();
     });
 });
