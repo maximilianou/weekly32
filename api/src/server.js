@@ -114,7 +114,7 @@ const RootMutationType = new GraphQLObjectType({
       args: {
         name: { type: GraphQLNonNull(GraphQLString) }
       },
-      resolve: (parent, args) => {
+      resolve: (parent, args, context, info) => {
         const author = { 
           id: authors.length + 1, 
           name: args.name
@@ -135,4 +135,5 @@ app.use('/graphql', expressGraphQL.graphqlHTTP({
   schema: schema,
   graphiql: true
 }));
-app.listen(5000, () => { console.log('Running!') });
+
+module.exports = app;
