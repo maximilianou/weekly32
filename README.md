@@ -938,7 +938,7 @@ mutation { addAuthor( name: "Bruce Eckel") {
 ---------
 ### TDD
 ---
-## Step: Javascript Nodejs GraphQL TDD
+## Step 9: Javascript Nodejs GraphQL TDD Install
 
 ```
 :~/projects/weekly32/tdd$ npm init -y
@@ -1020,4 +1020,210 @@ const productReviewsResolver = () => ([{
 module.exports = { productReviewsResolver }
 ```
 
+---
+## Step 10: Javascript Nodejs GraphQL API(back) UI(Front) React
+
+```
+:~/projects/weekly32/app/back$ npm init -y
+:~/projects/weekly32/app/back$ npm i express graphql express-graphql
+:~/projects/weekly32/app/back$ npm i -D nodemon
+
+:~/projects/weekly32/app$ npm init react-app ui
+:~/projects/weekly32/app/ui$ npm i @apollo/client graphql
+
+```
+- query ( search )
+```js
+query { lang(id:3) {
+  id, lang, liked
+}}
+```
+- mutation ( add )
+```js
+mutation { 
+  lang(lang:"Scala", liked:true) { 
+  lang, liked
+  }
+}
+```
+
+- app/api/index.js
+```js
+const app = require('./server');
+const port = process.env.PORT || '5000';
+app.listen(port, () => { console.log(` 🗺  Running! http://localhost:${port}/graphql`) });
+```
+- app/api/server.js
+```js
+const express = require('express');
+const { GraphQLObjectType, 
+  GraphQLInt, 
+  GraphQLString, 
+  GraphQLBoolean, 
+  GraphQLList, 
+  GraphQLSchema } = require('graphql');
+const { graphqlHTTP } = require('express-graphql');
+const cors  = require('cors');
+
+const app = express();
+app.use(cors());
+
+const seedData  = [
+  { id: 1, lang: 'Javascript', liked: true},
+  { id: 2, lang: 'Rust', liked: true},
+  { id: 3, lang: 'Typescript', liked: true},
+];
+
+const langType = new GraphQLObjectType({
+  name: 'Language',
+  description: 'Programing Languages',
+  fields: {
+    id: {
+      type: GraphQLInt
+    },
+    lang: {
+      type: GraphQLString
+    },
+    liked: {
+      type: GraphQLBoolean
+    }
+  }
+});
+
+const rootQuery = new GraphQLObjectType({
+  name: 'RootQuery',
+  description: 'This is the root query',
+  fields: {
+    langs: {
+      type: GraphQLList( langType ),
+      resolve: () => seedData
+    },
+    lang: {
+      type: langType,
+      args: {
+        id: {
+          type: GraphQLInt
+        }
+      },
+      resolve: (parent, args, context, info) => (
+        seedData.find( lang => lang.id === args.id)
+        )
+    }
+  }
+});
+
+const rootMutation = new GraphQLObjectType({
+  name: 'RootMutation',
+  description: 'This is the root mutation',
+  fields: {
+    lang: {
+      type: langType,
+      args: {
+        lang: { 
+          type: GraphQLString },
+        liked: { 
+          type: GraphQLBoolean }
+      },
+      resolve: (parent, args, context, info) => {
+        const current = { id: seedData.length+1, lang: args.lang, liked: args.liked}
+        seedData.push(current);
+        return current;
+      }
+    }
+  }
+});
+
+
+const schema = new GraphQLSchema({
+  query: rootQuery,
+  mutation: rootMutation
+});
+
+app.use('/graphql', graphqlHTTP({
+  schema, 
+  graphiql: true,  
+}));
+module.exports = app;
+```
+
+- app/ui/index.js
+```js
+import React from 'react';
+import ReactDOM from 'react-dom';
+import './index.css';
+import App from './App';
+import {
+  ApolloClient,
+  InMemoryCache,
+  gql,
+  ApolloProvider
+} from '@apollo/client';
+
+const client = new ApolloClient({
+  uri: 'http://localhost:5000/graphql',
+  cache: new InMemoryCache()
+});
+
+client.query({
+  query: gql`
+    query languageQuery {
+      langs {
+        id
+        lang
+        liked
+      }
+    }
+  `
+}).then(result => console.log(result));
+
+ReactDOM.render(
+  <ApolloProvider client={client}>
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  </ApolloProvider>,
+  document.querySelector('#root')
+);
+```
+- app/ui/App.js
+```js
+import { Lang } from './comp/Lang';
+function App() {
+  return (
+    <div className="App">
+      <Lang></Lang>
+    </div>
+  );
+}
+export default App;
+```
+- app/ui/comp/Lang.js
+```js
+import React from 'react';
+import { useQuery, gql } from '@apollo/client';
+
+const LANG_DATA = gql`
+  query languageQuery {
+    langs {
+      id
+      lang
+      liked
+    }
+  }
+`;
+
+export const Lang = () => {
+  const { data, loading, error} = useQuery(LANG_DATA);
+  if( loading ) return <p> 🗺 Loading..</p>;
+  if( error ) return <p> 🗺 Error. {error}</p>;
+  return (
+    <div><h2> 🗺 </h2>
+     {data.langs.length > 0 && data.langs.map( ( {id, lang, liked} ) => {
+       return(<div key={id}>{lang}, {liked}</div>);
+     }
+     )}
+    </div>
+    );
+}
+```
 
